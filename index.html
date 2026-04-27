@@ -254,7 +254,7 @@ const DB = {
   deleteNovel(id) {
     this.set('novels', this.getNovels().filter(x => x.id !== id));
   },
-  getSettings() { return this.get('settings') || { provider:'deepseek', key:'', url:'https://api.deepseek.com/v1/chat/completions', model:'deepseek-chat' } },
+  getSettings() { return this.get('settings') || { provider:'deepseek', key:'', url:'https://api.deepseek.com/v1/chat/completions', model:'deepseek-v4-flash' } },
   saveSettings(s) { this.set('settings', s) }
 };
 
@@ -643,7 +643,7 @@ function toggleApiKey() {
   let modelEl = document.getElementById('apiModel');
   if (p === 'deepseek') {
     urlEl.value = 'https://api.deepseek.com/v1/chat/completions';
-    modelEl.value = 'deepseek-chat';
+    modelEl.value = 'deepseek-v4-flash';
   } else {
     urlEl.value = 'https://api.moonshot.cn/v1/chat/completions';
     modelEl.value = 'moonshot-v1-8k';
