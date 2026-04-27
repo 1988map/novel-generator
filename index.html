@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>脑洞工厂 - AI小说生成器</title>
+<style>
+:root{--bg:#0d0d0d;--surface:#1a1a1a;--card:#222;--border:#333;--text:#e0e0e0;--dim:#888;--accent:#f59e0b;--accent2:#8b5cf6;--green:#10b981;--red:#ef4444;--blue:#3b82f6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .sub{font-size:12px;color:var(--dim);-webkit-text-fill-color:var(--dim)}
+.nav{display:flex;gap:4px;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto}
+.nav button{padding:10px 16px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:14px;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.nav button:hover{color:var(--text)}
+.nav button.active{color:var(--accent);border-bottom-color:var(--accent)}
+.container{max-width:960px;margin:0 auto;padding:20px}
+.section{display:none}
+.section.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.card h3{font-size:16px;margin-bottom:12px;color:var(--accent)}
+label{display:block;font-size:13px;color:var(--dim);margin-bottom:4px;margin-top:12px}
+label:first-child{margin-top:0}
+input,textarea,select{width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;outline:none;transition:.15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:80px;font-family:inherit}
+textarea.mini{min-height:60px}
+.row{display:flex;gap:12px}
+.row>*{flex:1}
+.btn{padding:8px 18px;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#eab308}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--card)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-block{width:100%;justify-content:center;padding:12px}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.gap-8{gap:8px}
+.flex{display:flex}
+.flex-wrap{flex-wrap:wrap}
+.items-center{align-items:center}
+.justify-between{justify-content:space-between}
+.text-dim{color:var(--dim);font-size:13px}
+.text-sm{font-size:13px}
+.text-center{text-align:center}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:var(--surface);color:var(--dim)}
+.badge-accent{background:rgba(245,158,11,.15);color:var(--accent)}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--dim)}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+.copy-btn{cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--dim);transition:.15s}
+.copy-btn:hover{color:var(--accent);border-color:var(--accent)}
+.chapter-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:8px}
+.chapter-item .meta{font-size:12px;color:var(--dim);margin-top:4px}
+.chapter-item .actions{display:flex;gap:6px;margin-top:8px}
+.chapter-content{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:12px;line-height:1.8;font-size:15px;max-height:500px;overflow-y:auto;white-space:pre-wrap}
+.chapter-content:empty{display:none}
+.progress-bar{height:4px;background:var(--surface);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .3s}
+.setting-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:8px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+.modal h3{margin-bottom:16px}
+.loading{text-align:center;padding:20px;color:var(--dim)}
+.loading .spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;margin:2px;background:rgba(139,92,246,.15);color:var(--accent2)}
+.api-status{font-size:12px;padding:4px 10px;border-radius:4px}
+.api-status.ok{background:rgba(16,185,129,.15);color:var(--green)}
+.api-status.err{background:rgba(239,68,68,.15);color:var(--red)}
+@media(max-width:640px){.row{flex-direction:column}.header{padding:10px 14px}.container{padding:12px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div>
+<h1>🧠 脑洞工厂</h1>
+<div class="sub">AI 小说生成器 · 从脑洞到成书</div>
+</div>
+<div class="flex items-center gap-8">
+<span id="apiStatus" class="api-status err">未连接</span>
+<button class="btn btn-secondary btn-sm" onclick="showSettings()">⚙️</button>
+</div>
+</div>
+
+<div class="nav" id="navBar">
+<button class="active" data-tab="workshop">📝 设定工坊</button>
+<button data-tab="outline">📋 大纲</button>
+<button data-tab="writing">✍️ 写作</button>
+<button data-tab="reader">📖 阅读器</button>
+</div>
+
+<div class="container">
+
+<!-- ====== 设定工坊 ====== -->
+<div class="section active" id="tab-workshop">
+<div class="card">
+<h3>📌 新建小说设定</h3>
+<div class="row">
+<div>
+<label>小说名称</label>
+<input id="novelName" placeholder="比如：修仙界最后的程序员">
+</div>
+<div>
+<label>题材</label>
+<select id="novelGenre">
+<option value="玄幻">玄幻</option>
+<option value="修仙">修仙</option>
+<option value="都市">都市</option>
+<option value="科幻">科幻</option>
+<option value="悬疑">悬疑</option>
+<option value="言情">言情</option>
+<option value="历史">历史</option>
+<option value="游戏">游戏</option>
+<option value="轻小说">轻小说</option>
+</select>
+</div>
+</div>
+<label>世界观设定</label>
+<textarea id="worldSetting" rows="3" placeholder="这个世界是什么样的？年代、势力、规则……"></textarea>
+<label>主角人设</label>
+<textarea id="characters" rows="3" placeholder="主角叫什么？性格、背景、金手指……"></textarea>
+<label>核心脑洞（一句话）</label>
+<textarea id="coreIdea" class="mini" rows="1" placeholder="如果……会怎样？"></textarea>
+<button class="btn btn-primary btn-block mt-16" onclick="saveSetting()">💾 保存设定</button>
+</div>
+
+<div id="settingList"></div>
+</div>
+
+<!-- ====== 大纲 ====== -->
+<div class="section" id="tab-outline">
+<div class="card">
+<h3>📋 大纲</h3>
+<p class="text-dim text-sm">先选一部小说，再生成或编辑大纲。</p>
+<label>选择小说</label>
+<select id="outlineNovelSelect" onchange="loadOutline()">
+<option value="">— 请先创建设定 —</option>
+</select>
+<div id="outlineArea" style="display:none">
+<label>总章节数</label>
+<div class="row">
+<input id="totalChapters" type="number" value="20" min="5" max="200">
+<button class="btn btn-primary" onclick="aiGenOutline()">🤖 AI 生成大纲</button>
+</div>
+<label>大纲内容（每行一章）</label>
+<textarea id="outlineText" rows="12" placeholder="第一章：穿越到修仙世界&#10;第二章：捡到一本残破功法&#10;第三章：第一次灵根测试……"></textarea>
+<button class="btn btn-primary btn-block mt-8" onclick="saveOutline()">💾 保存大纲</button>
+</div>
+</div>
+</div>
+
+<!-- ====== 写作 ====== -->
+<div class="section" id="tab-writing">
+<div class="card">
+<h3>✍️ 写作工坊</h3>
+<label>选择小说</label>
+<select id="writingNovelSelect" onchange="loadChapters()">
+<option value="">— 请先完成设定和大纲 —</option>
+</select>
+<div id="writingArea" style="display:none">
+<div class="row mt-8">
+<div>
+<label>当前章节</label>
+<select id="chapterSelect" onchange="loadChapterContent()"></select>
+</div>
+<div>
+<label>目标字数</label>
+<input id="wordCount" type="number" value="2000" min="500" max="10000" step="500">
+</div>
+</div>
+<div class="flex gap-8 mt-8">
+<button class="btn btn-primary" onclick="aiWriteChapter()">🤖 AI 写这章</button>
+<button class="btn btn-secondary" onclick="aiContinueChapter()">📝 续写</button>
+<button class="btn btn-secondary" onclick="copyChapter()">📋 复制</button>
+<button class="btn btn-secondary" onclick="exportTxt()">📥 导出 TXT</button>
+</div>
+<div id="chapterContent" class="chapter-content mt-8"></div>
+<div id="writingProgress" style="display:none" class="loading mt-8">
+<div class="spinner"></div>
+<p class="text-dim mt-8">AI 正在码字……</p>
+<div class="progress-bar"><div class="fill" style="width:20%"></div></div>
+</div>
+</div>
+</div>
+<div id="chapterList"></div>
+</div>
+
+<!-- ====== 阅读器 ====== -->
+<div class="section" id="tab-reader">
+<div class="card">
+<h3>📖 阅读器</h3>
+<label>选择小说</label>
+<select id="readerNovelSelect" onchange="loadReaderChapters()">
+<option value="">— 请先写几章 —</option>
+</select>
+<div id="readerArea" style="display:none">
+<div class="flex items-center justify-between mt-8">
+<button class="btn btn-secondary btn-sm" onclick="readerPrev()">◀ 上一章</button>
+<span id="readerTitle" class="text-dim">选择章节</span>
+<button class="btn btn-secondary btn-sm" onclick="readerNext()">下一章 ▶</button>
+</div>
+<div id="readerContent" class="chapter-content mt-8" style="max-height:none"></div>
+</div>
+</div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ====== 设置弹窗 ====== -->
+<div class="modal-overlay" id="settingsModal">
+<div class="modal">
+<h3>⚙️ 设置</h3>
+<label>AI 接口</label>
+<select id="apiProvider" onchange="toggleApiKey()">
+<option value="deepseek">DeepSeek</option>
+<option value="moonshot">Kimi (月之暗面)</option>
+</select>
+<label>API Key</label>
+<input id="apiKey" type="password" placeholder="sk-...">
+<label id="apiUrlLabel">API 地址</label>
+<input id="apiUrl" value="https://api.deepseek.com/v1/chat/completions">
+<label>模型</label>
+<input id="apiModel" value="deepseek-chat">
+<button class="btn btn-secondary btn-block mt-8" onclick="testApi()">🔌 测试连接</button>
+<div id="apiTestResult" class="mt-8 text-sm text-center"></div>
+<button class="btn btn-primary btn-block mt-16" onclick="saveSettings()">💾 保存设置</button>
+<button class="btn btn-secondary btn-block mt-8" onclick="closeSettings()">关闭</button>
+</div>
+</div>
+
+<script>
+// ====== 数据层 ======
+const DB = {
+  get(k) { try { return JSON.parse(localStorage.getItem('nf_' + k)) } catch(e) { return null } },
+  set(k, v) { localStorage.setItem('nf_' + k, JSON.stringify(v)) },
+  getNovels() { return this.get('novels') || [] },
+  saveNovel(n) {
+    let list = this.getNovels();
+    let idx = list.findIndex(x => x.id === n.id);
+    if (idx >= 0) list[idx] = n; else list.push(n);
+    this.set('novels', list);
+  },
+  getNovel(id) { return this.getNovels().find(x => x.id === id) },
+  deleteNovel(id) {
+    this.set('novels', this.getNovels().filter(x => x.id !== id));
+  },
+  getSettings() { return this.get('settings') || { provider:'deepseek', key:'', url:'https://api.deepseek.com/v1/chat/completions', model:'deepseek-chat' } },
+  saveSettings(s) { this.set('settings', s) }
+};
+
+let currentNovelId = null;
+let currentChapterIdx = 0;
+
+// ====== 设定工坊 ======
+function saveSetting() {
+  let name = document.getElementById('novelName').value.trim();
+  if (!name) { alert('给小说起个名儿～'); return }
+  let novel = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    name,
+    genre: document.getElementById('novelGenre').value,
+    world: document.getElementById('worldSetting').value.trim(),
+    characters: document.getElementById('characters').value.trim(),
+    idea: document.getElementById('coreIdea').value.trim(),
+    outline: '',
+    chapters: [],
+    createdAt: Date.now()
+  };
+  DB.saveNovel(novel);
+  document.getElementById('novelName').value = '';
+  document.getElementById('worldSetting').value = '';
+  document.getElementById('characters').value = '';
+  document.getElementById('coreIdea').value = '';
+  renderSettingList();
+  refreshSelects();
+  alert('✅ 设定已保存！');
+}
+
+function renderSettingList() {
+  let list = DB.getNovels();
+  let el = document.getElementById('settingList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📚</div><p>还没小说呢，上面新建一部吧</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(n => `
+    <div class="card">
+      <div class="flex items-center justify-between">
+        <div>
+          <strong>${esc(n.name)}</strong>
+          <span class="badge badge-accent">${n.genre}</span>
+          <span class="badge">${n.chapters.filter(c=>c.content).length}章</span>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="editSetting('${n.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteNovel('${n.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="text-dim text-sm mt-8">
+        ${n.idea ? `💡 ${esc(n.idea)}` : ''}
+        ${n.world ? `<br>🌍 ${esc(n.world.slice(0,80))}${n.world.length>80?'…':''}` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function editSetting(id) {
+  let n = DB.getNovel(id);
+  if (!n) return;
+  document.getElementById('novelName').value = n.name;
+  document.getElementById('novelGenre').value = n.genre;
+  document.getElementById('worldSetting').value = n.world;
+  document.getElementById('characters').value = n.characters;
+  document.getElementById('coreIdea').value = n.idea;
+  DB.deleteNovel(id);
+  renderSettingList();
+  refreshSelects();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function deleteNovel(id) {
+  if (!confirm('确定删除吗？章节内容也会一起删除。')) return;
+  DB.deleteNovel(id);
+  renderSettingList();
+  refreshSelects();
+}
+
+// ====== 大纲 ======
+function refreshSelects() {
+  let list = DB.getNovels();
+  ['outlineNovelSelect','writingNovelSelect','readerNovelSelect'].forEach(id => {
+    let el = document.getElementById(id);
+    let cur = el.value;
+    el.innerHTML = '<option value="">— 请选择小说 —</option>' + list.map(n => `<option value="${n.id}">${esc(n.name)}</option>`).join('');
+    if (cur && list.some(n=>n.id===cur)) el.value = cur;
+  });
+}
+
+function loadOutline() {
+  let id = document.getElementById('outlineNovelSelect').value;
+  let area = document.getElementById('outlineArea');
+  if (!id) { area.style.display = 'none'; return }
+  let n = DB.getNovel(id);
+  if (!n) return;
+  area.style.display = 'block';
+  document.getElementById('totalChapters').value = n.outline ? n.outline.split('\n').length : 20;
+  document.getElementById('outlineText').value = n.outline || '';
+  currentNovelId = id;
+}
+
+async function aiGenOutline() {
+  let n = DB.getNovel(currentNovelId);
+  if (!n) return;
+  let total = document.getElementById('totalChapters').value || 20;
+  let btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ 生成中…';
+  let prompt = `你是一个专业的小说大纲策划师。请为以下小说生成${total}章大纲。
+
+小说名：${n.name}
+题材：${n.genre}
+世界观：${n.world || '（无详细设定）'}
+主角：${n.characters || '（无详细人设）'}
+核心脑洞：${n.idea || '（无）'}
+
+要求：
+1. 每章一行，格式：第X章：标题
+2. 章节之间要有递进和悬念
+3. ${total}章要构成完整的故事弧线（起承转合）
+4. 只输出大纲内容，不要多余说明`;
+  let text = await callAI(prompt);
+  if (text) {
+    // 清理多余格式，只保留章节行
+    let lines = text.split('\n').filter(l => /第[一二三四五六七八九十百千万0-9]+章/.test(l)).map(l => l.trim());
+    if (lines.length === 0) lines = text.split('\n').filter(l => l.trim()).slice(0, total);
+    document.getElementById('outlineText').value = lines.join('\n');
+  }
+  btn.disabled = false; btn.textContent = '🤖 AI 生成大纲';
+}
+
+function saveOutline() {
+  let n = DB.getNovel(currentNovelId);
+  if (!n) return;
+  n.outline = document.getElementById('outlineText').value;
+  // 如果已经有章节了，同步更新章节列表
+  let lines = n.outline.split('\n').filter(l => l.trim());
+  if (n.chapters.length === 0 || n.chapters.length !== lines.length) {
+    n.chapters = lines.map((title, i) => ({
+      idx: i,
+      title: title.trim(),
+      content: '',
+      wordCount: 0
+    }));
+  }
+  DB.saveNovel(n);
+  refreshSelects();
+  alert('✅ 大纲已保存！');
+}
+
+// ====== 写作 ======
+function loadChapters() {
+  let id = document.getElementById('writingNovelSelect').value;
+  let area = document.getElementById('writingArea');
+  if (!id) { area.style.display = 'none'; return }
+  let n = DB.getNovel(id);
+  if (!n) return;
+  area.style.display = 'block';
+  currentNovelId = id;
+  let sel = document.getElementById('chapterSelect');
+  sel.innerHTML = n.chapters.map((c,i) => `<option value="${i}">第${i+1}章 ${c.title}${c.content?' ✅':''}</option>`).join('');
+  loadChapterContent();
+}
+
+function loadChapterContent() {
+  let n = DB.getNovel(currentNovelId);
+  if (!n) return;
+  let idx = parseInt(document.getElementById('chapterSelect').value);
+  if (isNaN(idx) || !n.chapters[idx]) {
+    document.getElementById('chapterContent').textContent = '';
+    return;
+  }
+  currentChapterIdx = idx;
+  let c = n.chapters[idx];
+  document.getElementById('chapterContent').textContent = c.content || '';
+  // 更新字数统计
+  let words = c.content.replace(/\s/g,'').length;
+  document.getElementById('chapterContent').dataset.words = words;
+}
+
+async function aiWriteChapter() {
+  let n = DB.getNovel(currentNovelId);
+  if (!n) return;
+  let idx = parseInt(document.getElementById('chapterSelect').value);
+  if (isNaN(idx)) { alert('请选择章节'); return }
+  let targetWords = parseInt(document.getElementById('wordCount').value) || 2000;
+  let c = n.chapters[idx];
+  let progress = document.getElementById('writingProgress');
+  progress.style.display = 'block';
+  let btn = event.target;
+  btn.disabled = true;
+
+  // 前情提要
+  let prevChapters = n.chapters.slice(0, idx).filter(x => x.content).slice(-3);
+  let prevSummary = prevChapters.map(x => x.title + '：' + x.content.slice(0, 200)).join('\n---\n');
+
+  let prompt = `你是一个小说作家。请根据以下设定写第${idx+1}章。
+
+小说名：${n.name}
+题材：${n.genre}
+世界观：${n.world || '（无）'}
+主角人设：${n.characters || '（无）'}
+本章标题：${c.title}
+
+前情提要：
+${prevSummary || '这是第一章，开头。'}
+
+要求：
+1. 写约${targetWords}字，上下浮动200字
+2. 有场景描写、对话、心理活动
+3. 章节结尾留悬念
+4. 不要出现"第X章"标题，直接写正文
+5. 语言流畅自然，不要AI味`;
+
+  let text = await callAI(prompt);
+  if (text) {
+    c.content = text;
+    DB.saveNovel(n);
+    loadChapterContent();
+    loadChapters();
+  }
+  progress.style.display = 'none';
+  btn.disabled = false;
+}
+
+async function aiContinueChapter() {
+  let n = DB.getNovel(currentNovelId);
+  if (!n) return;
+  let idx = parseInt(document.getElementById('chapterSelect').value);
+  if (isNaN(idx)) { alert('请选择章节'); return }
+  let c = n.chapters[idx];
+  if (!c.content) { aiWriteChapter(); return }
+  let targetWords = parseInt(document.getElementById('wordCount').value) || 2000;
+  let progress = document.getElementById('writingProgress');
+  progress.style.display = 'block';
+  let btn = event.target;
+  btn.disabled = true;
+
+  let existing = c.content.slice(-500);
+  let prompt = `请续写以下小说章节的内容。
+
+小说名：${n.name}
+题材：${n.genre}
+本章标题：${c.title}
+
+已有内容最后一段：
+${existing}
+
+要求：
+1. 续写约${Math.round(targetWords/2)}字
+2. 保持风格一致，衔接自然
+3. 直接续写，不要重复已有内容`;
+
+  let text = await callAI(prompt);
+  if (text) {
+    c.content += '\n\n' + text;
+    DB.saveNovel(n);
+    loadChapterContent();
+    loadChapters();
+  }
+  progress.style.display = 'none';
+  btn.disabled = false;
+}
+
+function copyChapter() {
+  let el = document.getElementById('chapterContent');
+  let text = el.textContent;
+  if (!text) { alert('这章还没写呢'); return }
+  navigator.clipboard.writeText(text).then(() => {
+    alert('📋 已复制到剪贴板！');
+  }).catch(() => {
+    // fallback
+    let ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    alert('📋 已复制！');
+  });
+}
+
+function exportTxt() {
+  let n = DB.getNovel(currentNovelId);
+  if (!n) return;
+  let lines = [`${n.name}`, `作者：脑洞工厂`, `题材：${n.genre}`, '', `【世界观】${n.world}`, `【主角】${n.characters}`, `【脑洞】${n.idea}`, '', '='.repeat(40), ''];
+  n.chapters.forEach((c,i) => {
+    if (c.content) {
+      lines.push(`第${i+1}章 ${c.title}`, '', c.content, '', '='.repeat(40), '');
+    }
+  });
+  let blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${n.name}.txt`;
+  a.click();
+  URL.revokeObjectURL(blob);
+}
+
+// ====== 阅读器 ======
+let readerChapters = [];
+
+function loadReaderChapters() {
+  let id = document.getElementById('readerNovelSelect').value;
+  let area = document.getElementById('readerArea');
+  if (!id) { area.style.display = 'none'; return }
+  let n = DB.getNovel(id);
+  if (!n) return;
+  area.style.display = 'block';
+  readerChapters = n.chapters.filter(c => c.content);
+  document.getElementById('readerTitle').textContent = readerChapters.length ? `共 ${readerChapters.length} 章可读` : '还没有写完的章节';
+  if (readerChapters.length) {
+    currentChapterIdx = 0;
+    showReaderChapter(0);
+  } else {
+    document.getElementById('readerContent').textContent = '';
+  }
+}
+
+function showReaderChapter(idx) {
+  if (idx < 0 || idx >= readerChapters.length) return;
+  currentChapterIdx = idx;
+  let c = readerChapters[idx];
+  document.getElementById('readerTitle').textContent = `第${c.idx+1}章 ${c.title}`;
+  document.getElementById('readerContent').textContent = c.content || '';
+}
+
+function readerPrev() { showReaderChapter(currentChapterIdx - 1) }
+function readerNext() { showReaderChapter(currentChapterIdx + 1) }
+
+// ====== AI 调用 ======
+async function callAI(prompt) {
+  let settings = DB.getSettings();
+  if (!settings.key) {
+    showSettings();
+    return null;
+  }
+  try {
+    let resp = await fetch(settings.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + settings.key
+      },
+      body: JSON.stringify({
+        model: settings.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.8,
+        max_tokens: settings.provider === 'moonshot' ? 8192 : 4096
+      })
+    });
+    if (!resp.ok) {
+      let err = await resp.text().catch(() => '');
+      throw new Error(`HTTP ${resp.status}: ${err.slice(0,100)}`);
+    }
+    let data = await resp.json();
+    let text = data.choices?.[0]?.message?.content || '';
+    // 清理可能的思考链
+    if (text.includes('</thinking>')) {
+      text = text.split('</thinking>').pop();
+    }
+    if (text.includes('</reasoning>')) {
+      text = text.split('</reasoning>').pop();
+    }
+    return text.trim();
+  } catch(e) {
+    alert('❌ AI 调用失败：' + e.message);
+    return null;
+  }
+}
+
+// ====== 设置 ======
+function showSettings() {
+  let s = DB.getSettings();
+  document.getElementById('apiProvider').value = s.provider;
+  document.getElementById('apiKey').value = s.key || '';
+  toggleApiKey();
+  document.getElementById('apiModel').value = s.model || '';
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+function toggleApiKey() {
+  let p = document.getElementById('apiProvider').value;
+  let urlEl = document.getElementById('apiUrl');
+  let modelEl = document.getElementById('apiModel');
+  if (p === 'deepseek') {
+    urlEl.value = 'https://api.deepseek.com/v1/chat/completions';
+    modelEl.value = 'deepseek-chat';
+  } else {
+    urlEl.value = 'https://api.moonshot.cn/v1/chat/completions';
+    modelEl.value = 'moonshot-v1-8k';
+  }
+}
+
+function saveSettings() {
+  let s = {
+    provider: document.getElementById('apiProvider').value,
+    key: document.getElementById('apiKey').value.trim(),
+    url: document.getElementById('apiUrl').value.trim(),
+    model: document.getElementById('apiModel').value.trim()
+  };
+  DB.saveSettings(s);
+  updateApiStatus();
+  closeSettings();
+  alert('✅ 设置已保存');
+}
+
+async function testApi() {
+  let el = document.getElementById('apiTestResult');
+  el.innerHTML = '<span class="spinner" style="display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></span> 测试中…';
+  let s = {
+    provider: document.getElementById('apiProvider').value,
+    key: document.getElementById('apiKey').value.trim(),
+    url: document.getElementById('apiUrl').value.trim(),
+    model: document.getElementById('apiModel').value.trim()
+  };
+  try {
+    let resp = await fetch(s.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + s.key
+      },
+      body: JSON.stringify({
+        model: s.model,
+        messages: [{ role: 'user', content: '回复"连接成功"四个字' }],
+        max_tokens: 20
+      })
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    let data = await resp.json();
+    el.innerHTML = '<span style="color:var(--green)">✅ 连接成功！' + (data.choices?.[0]?.message?.content || '') + '</span>';
+  } catch(e) {
+    el.innerHTML = '<span style="color:var(--red)">❌ 连接失败：' + e.message + '</span>';
+  }
+}
+
+function updateApiStatus() {
+  let s = DB.getSettings();
+  let el = document.getElementById('apiStatus');
+  if (s.key) {
+    el.className = 'api-status ok';
+    el.textContent = '✅ ' + s.provider + ' 已配置';
+  } else {
+    el.className = 'api-status err';
+    el.textContent = '⚠️ 未配置 API';
+  }
+}
+
+// ====== 导航切换 ======
+document.getElementById('navBar').addEventListener('click', function(e) {
+  let btn = e.target.closest('button');
+  if (!btn || !btn.dataset.tab) return;
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+});
+
+// ====== 工具 ======
+function esc(s) {
+  let d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ====== 初始化 ======
+renderSettingList();
+refreshSelects();
+updateApiStatus();
+
+// 点击遮罩关闭设置
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+</script>
+</body>
+</html>
